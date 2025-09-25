@@ -51,5 +51,7 @@ public class UserMonitorService {
             }
             cursor = scanResult.getCursor();
         } while (!cursor.equals(ScanParams.SCAN_POINTER_START));
+
+        System.out.println("Success: Inactive user check completed");
     }
 }
