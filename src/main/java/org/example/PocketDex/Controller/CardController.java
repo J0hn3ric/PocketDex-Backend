@@ -1,5 +1,6 @@
 package org.example.PocketDex.Controller;
 
+import org.example.PocketDex.DTO.response.ApiResponseDTO;
 import org.example.PocketDex.Model.Card;
 import org.example.PocketDex.Service.CardService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Optional;
 
-@Controller
+@RestController
 @RequestMapping("/api/cards")
 public class CardController {
 
@@ -21,89 +22,94 @@ public class CardController {
     private CardService cardService;
 
     @GetMapping
-    public Mono<ResponseEntity<Object>> getCardsByPagination(
-            @RequestParam(defaultValue = "A1-1") String lastSeenId,
-            @RequestParam(defaultValue = "50") int limit
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getAllCardsWithPagination(
+            @RequestParam(defaultValue = "A1-001") String lastSeenId
     ) {
-        return cardService.getPaginatedCards(lastSeenId, limit)
-                .map(cards -> ResponseEntity.ok((Object) cards))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity
-                                .badRequest()
-                                .body("Error fetching all cards: " + e.getMessage()))
-                );
-    }
-
-    @GetMapping("/{cardId}")
-    public ResponseEntity<?> getCardById(@PathVariable String cardId) {
-        try {
-            Card cardReturned = cardService.getCardById(cardId).get();
-
-            return ResponseEntity.ok(cardReturned);
-        } catch (Exception e) {
-            String errorMsg = "Error fetching Card with id=" + cardId + ": " + e.getMessage();
-
-            return ResponseEntity.badRequest().body(errorMsg);
-        }
+        return cardService.getPaginatedCards(lastSeenId)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
     }
 
     @GetMapping("/by-expansion")
-    public ResponseEntity<?> getCardsByExpansion(
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByRarityWithPagination(
+            @RequestParam String rarityString,
+            @RequestParam(defaultValue = "A1-001") String lastSeenId
+    ) {
+        return cardService.getPaginatedCardByRarity(rarityString, lastSeenId)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
+    }
+
+    @GetMapping("/{cardId}")
+    public Mono<ResponseEntity<ApiResponseDTO<Card>>> getCardById(@PathVariable String cardId) {
+        return cardService.getCardById(cardId)
+                .map(body -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(body, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
+    }
+
+    @GetMapping("/by-expansion-all")
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByExpansion(
             @RequestParam(required = true) String expansion
     ) {
-        try {
-            List<Card> cardsReturned = cardService.getCardByExpansion(expansion);
-
-            return ResponseEntity.ok(cardsReturned);
-        } catch (Exception e) {
-            String errorMsg = "Error fetching all cards: " + e.getMessage();
-
-            return ResponseEntity.badRequest().body(errorMsg);
-        }
+        return cardService.getCardByExpansion(expansion)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
     }
 
-    @GetMapping("/by-pack")
-    public ResponseEntity<?> getCardsByPack(
+    @GetMapping("/by-pack-all")
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByPack(
             @RequestParam String pack
     ) {
-        try {
-            List<Card> cardsReturned = cardService.getCardByPack(pack);
-
-            return ResponseEntity.ok(cardsReturned);
-        } catch (Exception e) {
-            String errorMsg = "Error fetching all cards: " + e.getMessage();
-
-            return ResponseEntity.badRequest().body(errorMsg);
-        }
+        return cardService.getCardByPack(pack)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
     }
 
-    @GetMapping("/by-rarity")
-    public Mono<ResponseEntity<Object>> getCardsByRarity(
-            @RequestParam(defaultValue = "A1-1") String lastSeenId,
-            @RequestParam(defaultValue = "50") int limit,
+    @GetMapping("/by-rarity-all")
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByRarity(
+            @RequestParam(defaultValue = "A1-001") String lastSeenId,
             @RequestParam String rarity
     ) {
-        return cardService.getPaginatedCardByRarity(rarity, lastSeenId, limit)
-                .map(cards -> ResponseEntity.ok((Object) cards))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity
-                                .badRequest().body(e.getMessage()))
-                );
+        return cardService.getPaginatedCardByRarity(rarity, lastSeenId)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
     }
 
     @GetMapping("/by-name")
-    public ResponseEntity<?> getCardsByName(
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByName(
             @RequestParam String name
     ) {
-        try {
-            List<Card> cardsReturned = cardService.getCardByName(name);
-
-            return ResponseEntity.ok(cardsReturned);
-        } catch (Exception e) {
-            String errorMsg = "Error fetching all cards: " + e.getMessage();
-
-            return ResponseEntity.badRequest().body(errorMsg);
-        }
+        return cardService.getCardByName(name)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
     }
 
 

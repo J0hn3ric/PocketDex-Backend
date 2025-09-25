@@ -1,11 +1,11 @@
 package org.example.PocketDex.DTO.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 public class UpdateUserProfileRequest {
     @JsonProperty("username")
     private String newUsername;

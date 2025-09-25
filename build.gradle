@@ -8,7 +8,11 @@ apply plugin: 'io.spring.dependency-management'
 
 group = 'org.example'
 version = '1.0-SNAPSHOT'
-sourceCompatibility = '21'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 repositories {
     mavenCentral()
@@ -25,6 +29,8 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
+
+    implementation 'redis.clients:jedis:6.1.0'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

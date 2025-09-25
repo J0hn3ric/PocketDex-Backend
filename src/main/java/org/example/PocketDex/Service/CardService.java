@@ -1,8 +1,11 @@
 package org.example.PocketDex.Service;
 
+import org.example.PocketDex.DTO.response.UserCardWithCardInfoResponseDTO;
+import org.example.PocketDex.Model.UserCard;
 import org.example.PocketDex.Rarity;
 import org.example.PocketDex.Model.Card;
 import org.example.PocketDex.Repository.CardRepository;
+import org.example.PocketDex.Utils.MongoConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -12,13 +15,14 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CardService {
     private final CardRepository cardRepository;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
+    private final int cardLimit = 50;
 
     @Autowired
     public CardService(
@@ -29,10 +33,12 @@ public class CardService {
         this.reactiveMongoTemplate = reactiveMongoTemplate;
     }
 
-    public Mono<List<Card>> getPaginatedCards(String lastSeenId, int limit) {
+    public Mono<List<Card>> getPaginatedCards(
+            String lastSeenId
+    ) {
         Query query = new Query()
-                .addCriteria(Criteria.where("_id").gt(lastSeenId))
-                .limit(limit)
+                .addCriteria(Criteria.where("_id").gte(lastSeenId))
+                .limit(cardLimit)
                 .with(Sort.by(Sort.Direction.ASC, "_id"));
 
         return reactiveMongoTemplate
@@ -40,74 +46,96 @@ public class CardService {
                 .collectList();
     }
 
-    public Optional<Card> getCardById(String id) throws Exception {
-        Optional<Card> card = this.cardRepository.findById(id);
-
-        if (card.equals(Optional.empty())) {
-            throw new Exception(
-                    "Card with "+
-                    id +
-                    " as Id not found, Invalid CardId given"
-            );
-        }
-
-        return card;
+    public Mono<Card> getCardById(
+            String id
+    ) {
+        return cardRepository.findById(id);
     }
 
-    public List<Card> getCardByExpansion(String expansion) throws Exception {
-        List<Card> cardList = this.cardRepository.findByExpansion(expansion);
+    public Flux<UserCardWithCardInfoResponseDTO> getUserCardsWithInfo(
+            List<UserCard> userCards
+    ) {
+        List<String> cardIdList = userCards.stream()
+                .map(UserCard::getCardId)
+                .toList();
 
-        if (cardList.isEmpty()) {
-            throw new Exception(
-                    "Cards with "+
-                    expansion +
-                    " as ExpansionId not found, Invalid ExpansionId given"
-            );
-        }
-        return cardList;
+        return cardRepository.findAllById(cardIdList)
+                .collectMap(Card::getId)
+                .flatMapMany(cardMap -> Flux.fromIterable(userCards)
+                        .map(userCard -> new UserCardWithCardInfoResponseDTO(
+                                userCard.getQuantity(),
+                                userCard.isTradable(),
+                                cardMap.get(userCard.getCardId())
+                        ))
+                );
     }
 
-    public List<Card> getCardByPack(String pack) throws Exception {
-        List<Card> cardList = this.cardRepository.findByPackId(pack);
-
-        if (cardList.isEmpty()) {
-            throw new Exception(
-                    "Cards with "+
-                    pack +
-                    " as PackId not found, Invalid PackId given"
-            );
-        }
-        return cardList;
+    public Mono<List<Card>> getCardByExpansion(
+            String expansion
+    ) {
+        return cardRepository
+                .findByExpansion(expansion)
+                .collectList();
     }
 
-    public List<Card> getCardByName(String name) throws Exception {
-        List<Card> cardList = this.cardRepository.findByName(name);
-
-        if (cardList.isEmpty()) {
-            throw new Exception(
-                    "Cards with "+
-                    name +
-                    " as Card name not found, Invalid Card name given"
-            );
-        }
-        return cardList;
+    public Mono<List<Card>> getCardByPack(
+            String pack
+    ) {
+        return cardRepository
+                .findByPackId(pack)
+                .collectList();
     }
 
-    public Mono<List<Card>> getPaginatedCardByRarity(String rarityString, String lastSeenId, int limit) {
-        try {
-            Rarity rarity = Rarity.fromValue(rarityString);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Cards with "+
-                            rarityString +
-                            " as Rarity not found, Invalid Rarity value given"
-            );
-        }
+    public Mono<List<Card>> getCardByName(
+            String name
+    ) {
+        return cardRepository
+                .findByName(name)
+                .collectList();
+    }
 
+    public Mono<List<Card>> getPaginatedCardByRarity(
+            String rarityString,
+            String lastSeenId
+    ) {
+        return getPaginatedCardByCriteria(
+                MongoConstants.CARD_RARITY,
+                rarityString,
+                lastSeenId
+        );
+    }
+
+    public Mono<List<Card>> getPaginatedCardByPack(
+            String pack,
+            String lastSeenId
+    ) {
+        return getPaginatedCardByCriteria(
+                MongoConstants.CARD_PACK,
+                pack,
+                lastSeenId
+        );
+    }
+
+    public Mono<List<Card>> getPaginatedCardByExpansion(
+            String expansion,
+            String lastSeenId
+    ) {
+        return getPaginatedCardByCriteria(
+                MongoConstants.EXPANSION,
+                expansion,
+                lastSeenId
+        );
+    }
+
+    private Mono<List<Card>> getPaginatedCardByCriteria(
+            String criteriaKey,
+            String criteriaValue,
+            String lastSeenId
+    ) {
         Query query = new Query()
                 .addCriteria(Criteria.where("_id").gt(lastSeenId))
-                .addCriteria(Criteria.where("card_rarity").is(rarityString))
-                .limit(limit)
+                .addCriteria(Criteria.where(criteriaKey).is(criteriaValue))
+                .limit(cardLimit)
                 .with(Sort.by(Sort.Direction.ASC, "_id"));
 
         return reactiveMongoTemplate

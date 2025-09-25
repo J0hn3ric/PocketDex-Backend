@@ -9,7 +9,12 @@ public class JWTConfig {
     @Value("${jwt.secret}")
     private String jwtSecretKey;
 
+    @Value("${supabase.secret}")
+    private String supabaseSecretKey;
+
     public String getJwtSecretKey() {
         return jwtSecretKey;
     }
+
+    public String getSupabaseSecretKey() { return supabaseSecretKey; }
 }

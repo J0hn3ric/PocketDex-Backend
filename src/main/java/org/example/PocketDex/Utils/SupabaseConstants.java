@@ -1,4 +1,10 @@
 package org.example.PocketDex.Utils;
 
-public class SupabaseConstants {
+public final class SupabaseConstants {
+
+    private SupabaseConstants() {}
+
+    public static final String TOKEN_PREFIX = "Bearer ";
+    public static final String API_KEY = "apikey";
+
 }

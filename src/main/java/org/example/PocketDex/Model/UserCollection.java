@@ -13,13 +13,13 @@ import java.util.UUID;
 @NoArgsConstructor
 public class UserCollection {
     private UUID userId;
-    private List<UserCard> userCardsToUpdate = new ArrayList<>();
+    private List<UserCard> userCardsToUpsert = new ArrayList<>();
     private List<UserCard> userCardsToRemove = new ArrayList<>();
 
     // may need Adapter for Collection cardList
     public UserCollection(UUID userId, List<UserCard> cardList) {
         this.userId = userId;
-        this.userCardsToUpdate = this.parseUserCardsToUpdate(cardList);
+        this.userCardsToUpsert = this.parseUserCardsToUpdate(cardList);
         this.userCardsToRemove = this.parseUserCardsToRemove(cardList);
     }
 

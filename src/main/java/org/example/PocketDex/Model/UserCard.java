@@ -24,9 +24,21 @@ public class UserCard{
     @JsonProperty("user_id")
     private UUID userId;
 
-    public UserCard(String cardId, UUID userId, int quantity) {
+    public UserCard(
+            String cardId,
+            UUID userId,
+            int quantity
+    ) {
         this.cardId = cardId;
         this.userId = userId;
+        this.quantity = quantity;
+    }
+
+    public UserCard(
+            String cardId,
+            int quantity
+    ) {
+        this.cardId = cardId;
         this.quantity = quantity;
     }
 
