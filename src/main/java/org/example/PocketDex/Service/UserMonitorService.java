@@ -27,7 +27,7 @@ public class UserMonitorService {
 
     public void checkAndDeleteInactiveUsers() {
         long now = Instant.now().getEpochSecond();
-        long threshold = now - (30L * 24 * 60 * 60);
+        long threshold = now - (24L * 60 * 60);
 
         // scan for every user in redis
         String cursor = ScanParams.SCAN_POINTER_START;

@@ -34,7 +34,7 @@ public class CardController {
                 )));
     }
 
-    @GetMapping("/by-expansion")
+    @GetMapping("/by-rarity")
     public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByRarityWithPagination(
             @RequestParam String rarityString,
             @RequestParam(defaultValue = "A1-001") String lastSeenId
@@ -53,6 +53,34 @@ public class CardController {
         return cardService.getCardById(cardId)
                 .map(body -> ResponseEntity.ok().body(
                         new ApiResponseDTO<>(body, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
+    }
+
+    @GetMapping("/by-expansion")
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByExpansionWithPagination(
+            @RequestParam(required = true) String expansion,
+            @RequestParam(required = true) String lastSeenId
+    ) {
+        return cardService.getPaginatedCardByExpansion(expansion, lastSeenId)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
+                ))
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
+                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
+                )));
+    }
+
+    @GetMapping("/by-pack")
+    public Mono<ResponseEntity<ApiResponseDTO<List<Card>>>> getCardsByPackWithPagination(
+            @RequestParam(required = true) String packId,
+            @RequestParam(required = true) String lastSeenId
+    ) {
+        return cardService.getPaginatedCardByPack(packId, lastSeenId)
+                .map(cards -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(cards, null)
                 ))
                 .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
                         new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
