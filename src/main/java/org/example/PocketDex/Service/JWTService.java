@@ -76,7 +76,6 @@ public class JWTService {
 
     public String getUserIdFromToken(String jwt) {
         try {
-
             return Jwts
                     .parser()
                     .verifyWith(this.supabaseKey)

@@ -185,25 +185,27 @@ public class UserService {
     }
 
     public Mono<ResponseBodyDTO<String>> deleteUserUsingBackendToken(String backendToken) {
-        Map<String, String> sessionInfo = sessionService.getUserSessionInfo(backendToken);
-        String accessToken = sessionInfo.get(UserConstants.ACCESS_TOKEN_KEY);
+        return tokenService.withValidSession(backendToken, sessionContext -> {
+            Map<String, String> sessionInfo = sessionService.getUserSessionInfo(backendToken);
+            String accessToken = sessionInfo.get(UserConstants.ACCESS_TOKEN_KEY);
 
-        String userIdFromToken = jwtService.getUserIdFromToken(accessToken);
+            String userIdFromToken = jwtService.getUserIdFromToken(accessToken);
 
-        sessionService.deleteSession(backendToken);
+            sessionService.deleteSession(backendToken);
 
-        return authWebClient
-                .delete()
-                .uri("/admin/users/" + userIdFromToken)
-                .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
-                .header(SupabaseConstants.API_KEY, authKey)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                )
-                .bodyToMono(String.class)
-                .then(Mono.just(new ResponseBodyDTO<>("user deleted successfully!", null)));
+            return authWebClient
+                    .delete()
+                    .uri("/admin/users/" + userIdFromToken)
+                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
+                    .header(SupabaseConstants.API_KEY, authKey)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
+                    )
+                    .bodyToMono(String.class)
+                    .then(Mono.just(new ResponseBodyDTO<>("user deleted successfully!", null)));
+        });
     }
 
     public Mono<Void> deleteUserUsingUserId(String userId) {
