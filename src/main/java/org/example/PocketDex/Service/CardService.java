@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class CardService {
     private final CardRepository cardRepository;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
-    private final int cardLimit = 50;
 
     @Autowired
     public CardService(
@@ -60,6 +59,7 @@ public class CardService {
                 expansion
         );
 
+        int cardLimit = 20;
         Query query = new Query(criteria)
                 .limit(cardLimit)
                 .with(Sort.by(Sort.Direction.ASC, "_id"));
