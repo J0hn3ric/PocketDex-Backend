@@ -59,7 +59,7 @@ public class CardService {
                 expansion
         );
 
-        int cardLimit = 10;
+        int cardLimit = 50;
         Query query = new Query(criteria)
                 .limit(cardLimit)
                 .with(Sort.by(Sort.Direction.ASC, "_id"));
