@@ -248,6 +248,7 @@ public class UserService {
                     .uri(uriBuilder -> uriBuilder
                             .path("/User")
                             .queryParam("id", "eq." + userId)
+                            .queryParam("select", "username,friend_id,user_img")
                             .build())
                     .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
                     .retrieve()
