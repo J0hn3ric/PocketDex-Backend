@@ -24,9 +24,9 @@ public class UserCardController {
     @Autowired
     private JWTService jwtService;
 
-    @PostMapping
+    @PostMapping("/me")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<UpdateUserCardsResponseDTO>>>>
-    updateUserCards(
+    bulkUpdateUserCards(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody List<UserCard> userCardsToUpdate
     ) {
@@ -41,7 +41,7 @@ public class UserCardController {
                 );
     }
 
-    @GetMapping("/owned")
+    @GetMapping("/me")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<UserCardWithCardInfoResponseDTO>>>>>
     getOwnedUserCards(
             @RequestHeader("Authorization") String authHeader
@@ -57,11 +57,11 @@ public class UserCardController {
                 );
     }
 
-    @GetMapping("/user")
+    @GetMapping("/user/{id}")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<UserCardWithCardInfoResponseDTO>>>>>
     getUserCardsByUserId(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam() String userId
+            @PathVariable("id") String userId
     ) {
         String jwtToken = jwtService.extractToken(authHeader);
 
@@ -74,11 +74,11 @@ public class UserCardController {
                 );
     }
 
-    @GetMapping("/card")
+    @GetMapping("/me/cards/{id}")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<UserCard>>>>>
     getSingleUserCard(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam() String cardId
+            @PathVariable("id") String cardId
     ) {
         String jwtToken = jwtService.extractToken(authHeader);
 

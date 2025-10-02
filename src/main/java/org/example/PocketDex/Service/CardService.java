@@ -1,5 +1,6 @@
 package org.example.PocketDex.Service;
 
+import com.mongodb.lang.Nullable;
 import org.example.PocketDex.DTO.response.UserCardWithCardInfoResponseDTO;
 import org.example.PocketDex.Model.UserCard;
 import org.example.PocketDex.Rarity;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,10 +36,31 @@ public class CardService {
     }
 
     public Mono<List<Card>> getPaginatedCards(
-            String lastSeenId
+            String lastSeenId,
+            @Nullable String rarity,
+            @Nullable String name,
+            @Nullable String expansion,
+            @Nullable String packId
     ) {
-        Query query = new Query()
-                .addCriteria(Criteria.where("_id").gte(lastSeenId))
+        Criteria criteria = Criteria.where("_id").gte(lastSeenId);
+        criteria = addNameCriteriaIfNameIsNotEmptyOrNull(criteria, name);
+        criteria = addParameterCriteriaIfParameterNotEmptyOrNull(
+                criteria,
+                MongoConstants.CARD_RARITY,
+                rarity
+        );
+        criteria = addParameterCriteriaIfParameterNotEmptyOrNull(
+                criteria,
+                MongoConstants.CARD_PACK,
+                packId
+        );
+        criteria = addParameterCriteriaIfParameterNotEmptyOrNull(
+                criteria,
+                MongoConstants.EXPANSION,
+                expansion
+        );
+
+        Query query = new Query(criteria)
                 .limit(cardLimit)
                 .with(Sort.by(Sort.Direction.ASC, "_id"));
 
@@ -70,76 +93,28 @@ public class CardService {
                 );
     }
 
-    public Mono<List<Card>> getCardByExpansion(
-            String expansion
+    private Criteria addNameCriteriaIfNameIsNotEmptyOrNull(
+            Criteria criteria,
+            @Nullable String name
     ) {
-        return cardRepository
-                .findByExpansion(expansion)
-                .collectList();
+        if (name != null && !name.isEmpty()) {
+            criteria = criteria.and("name").regex(
+                    "^" + Pattern.quote(name) + ".*",
+                    "i"
+            );
+        }
+        return criteria;
     }
 
-    public Mono<List<Card>> getCardByPack(
-            String pack
+    private Criteria addParameterCriteriaIfParameterNotEmptyOrNull(
+            Criteria criteria,
+            String parameterKey,
+            @Nullable String parameterValue
     ) {
-        return cardRepository
-                .findByPackId(pack)
-                .collectList();
-    }
+        if (parameterValue != null && !parameterValue.isEmpty()) {
+            criteria = criteria.and(parameterKey).is(parameterValue);
+        }
 
-    public Mono<List<Card>> getCardByName(
-            String name
-    ) {
-        return cardRepository
-                .findByName(name)
-                .collectList();
-    }
-
-    public Mono<List<Card>> getPaginatedCardByRarity(
-            String rarityString,
-            String lastSeenId
-    ) {
-        return getPaginatedCardByCriteria(
-                MongoConstants.CARD_RARITY,
-                rarityString,
-                lastSeenId
-        );
-    }
-
-    public Mono<List<Card>> getPaginatedCardByPack(
-            String pack,
-            String lastSeenId
-    ) {
-        return getPaginatedCardByCriteria(
-                MongoConstants.CARD_PACK,
-                pack,
-                lastSeenId
-        );
-    }
-
-    public Mono<List<Card>> getPaginatedCardByExpansion(
-            String expansion,
-            String lastSeenId
-    ) {
-        return getPaginatedCardByCriteria(
-                MongoConstants.EXPANSION,
-                expansion,
-                lastSeenId
-        );
-    }
-
-    private Mono<List<Card>> getPaginatedCardByCriteria(
-            String criteriaKey,
-            String criteriaValue,
-            String lastSeenId
-    ) {
-        Query query = new Query()
-                .addCriteria(Criteria.where("_id").gt(lastSeenId))
-                .addCriteria(Criteria.where(criteriaKey).is(criteriaValue))
-                .limit(cardLimit)
-                .with(Sort.by(Sort.Direction.ASC, "_id"));
-
-        return reactiveMongoTemplate
-                .find(query, Card.class)
-                .collectList();
+        return criteria;
     }
 }

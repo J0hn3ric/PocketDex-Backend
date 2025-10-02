@@ -25,6 +25,22 @@ public class UserController {
     @Autowired
     private JWTService jwtService;
 
+    @GetMapping("/me")
+    public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<User>>>> gewOwnInfo(
+        @RequestHeader("Authorization") String authHeader
+    ) {
+        String jwtToken = jwtService.extractToken(authHeader);
+
+        return userService.getOwnUserInfo(jwtToken)
+                .map(body -> ResponseEntity.ok().body(
+                        new ApiResponseDTO<>(body, null)
+                ))
+                .onErrorResume(e ->
+                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
+                );
+    }
+
+
     @PostMapping("/signup")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<Void>>>> signupUser(
             @RequestBody User userInfo
@@ -42,7 +58,7 @@ public class UserController {
                 );
     }
 
-    @PatchMapping("/user-profile")
+    @PatchMapping("/me")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<UpdateUserProfileResponseDTO>>>> updateUserProfileInfo(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody UpdateUserProfileRequest updateUserProfileRequest
@@ -62,7 +78,7 @@ public class UserController {
 
     }
 
-    @DeleteMapping("/delete-user")
+    @DeleteMapping("/me")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<String>>>> deleteUser(
             @RequestHeader("Authorization") String authHeader
     ) {
@@ -77,10 +93,10 @@ public class UserController {
                 );
     }
 
-    @GetMapping("/user-profile/by-id")
-    public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<User>>>>> getUserById(
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<User>>>> getUserById(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam String id
+            @PathVariable("id") String id
     ) {
         String jwtToken = jwtService.extractToken(authHeader);
 
@@ -93,10 +109,10 @@ public class UserController {
                 );
     }
 
-    @GetMapping("/user-profile/by-username")
+    @GetMapping("/username/{username}")
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<User>>>>> getUserByUsername(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam String username
+            @PathVariable("username") String username
     ) {
         String jwtToken = jwtService.extractToken(authHeader);
 

@@ -60,11 +60,11 @@ public class UserService {
             String username,
             String userImg
     ) {
-        return anonymousSignup().flatMap(anonymousResponse -> {
-            String accessToken = anonymousResponse.get(UserConstants.ACCESS_TOKEN_KEY).asText();
-            long accessTokenExpiration = anonymousResponse.get("expires_at").asLong();
-            String refreshToken = anonymousResponse.get(UserConstants.REFRESH_TOKEN_KEY). asText();
-            String userId = anonymousResponse.get("user").get("id").asText();
+        return anonymousSignup().flatMap(response -> {
+            String accessToken = response.get(UserConstants.ACCESS_TOKEN_KEY).asText();
+            long accessTokenExpiration = response.get("expires_at").asLong();
+            String refreshToken = response.get(UserConstants.REFRESH_TOKEN_KEY). asText();
+            String userId = response.get("user").get("id").asText();
 
             String backendToken = sessionService.createSession(
                     accessToken, accessTokenExpiration, refreshToken
@@ -84,8 +84,8 @@ public class UserService {
                     .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
                     .bodyValue(user)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
+                    .onStatus(HttpStatusCode::isError, resp ->
+                            resp.bodyToMono(String.class)
                                     .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
                     )
                     .bodyToMono(Void.class)
@@ -93,35 +93,17 @@ public class UserService {
         });
     }
 
-    public Mono<ResponseBodyDTO<List<User>>> getUserInfoById(String backendToken, String userId) {
-        return tokenService.withValidSession(backendToken, sessionContext -> {
-            String accessToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.ACCESS_TOKEN_KEY);
 
-            String newBackendToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.BACKEND_TOKEN_KEY);
+    public Mono<ResponseBodyDTO<User>> getOwnUserInfo(String backendToken) {
+        return tokenService.withValidSession(backendToken, sessionContext ->
+                fetchUser(backendToken, jwtService.getUserIdFromToken(
+                        sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY)
+                ))
+        );
+    }
 
-            return webClient
-                    .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/User")
-                            .queryParam("id", "eq." + userId)
-                            .build())
-                    .header(
-                            HttpHeaders.AUTHORIZATION,
-                            SupabaseConstants.TOKEN_PREFIX + accessToken
-                    )
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(User.class)
-                    .collectList()
-                    .map(users -> new ResponseBodyDTO<>(users, newBackendToken));
-        });
+    public Mono<ResponseBodyDTO<User>> getUserInfoById(String backendToken, String userId) {
+        return fetchUser(backendToken, userId);
     }
 
     public Mono<ResponseBodyDTO<List<User>>> getUserInfoByUsername(String backendToken, String username) {
@@ -256,6 +238,30 @@ public class UserService {
                 .bodyToMono(JsonNode.class);
     }
 
+    private Mono<ResponseBodyDTO<User>> fetchUser(String backendToken, String userId) {
+        return tokenService.withValidSession(backendToken, sessionContext -> {
+            String accessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
+            String newBackendToken = sessionContext.sessionInfo().get(UserConstants.BACKEND_TOKEN_KEY);
 
+            return webClient
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/User")
+                            .queryParam("id", "eq." + userId)
+                            .build())
+                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
+                    )
+                    .bodyToMono(User[].class)
+                    .flatMap(arr -> {
+                        if (arr.length == 0) return Mono.error(new RuntimeException("User not found"));
+                        return Mono.just(arr[0]);
+                    })
+                    .map(user -> new ResponseBodyDTO<>(user, newBackendToken));
+        });
+    }
 
 }
