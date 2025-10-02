@@ -84,12 +84,14 @@ public class TokenService {
         String refreshToken = sessionInfo.get(UserConstants.REFRESH_TOKEN_KEY);
 
         ObjectNode requestBody = objectMapper.createObjectNode();
-        requestBody.put("grant_type", UserConstants.REFRESH_TOKEN_KEY);
         requestBody.put(UserConstants.REFRESH_TOKEN_KEY, refreshToken);
 
         return authWebClient
                 .post()
-                .uri("/token")
+                .uri(uriBuilder -> uriBuilder
+                        .path("/token")
+                        .queryParam("grant_type", UserConstants.REFRESH_TOKEN_KEY)
+                        .build())
                 .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
                 .header(SupabaseConstants.API_KEY, authKey)
                 .bodyValue(requestBody)
