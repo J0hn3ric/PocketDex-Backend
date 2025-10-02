@@ -95,11 +95,12 @@ public class UserService {
 
 
     public Mono<ResponseBodyDTO<User>> getOwnUserInfo(String backendToken) {
-        return tokenService.withValidSession(backendToken, sessionContext ->
-                fetchUser(backendToken, jwtService.getUserIdFromToken(
-                        sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY)
-                ))
-        );
+        return tokenService.withValidSession(backendToken, sessionContext -> {
+            String refreshedAccessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
+            String userId = jwtService.getUserIdFromToken(refreshedAccessToken);
+
+            return fetchUser(backendToken, userId);
+        });
     }
 
     public Mono<ResponseBodyDTO<User>> getUserInfoById(String backendToken, String userId) {
