@@ -1,6 +1,5 @@
 package org.example.PocketDex.Controller;
 
-import org.example.PocketDex.DTO.request.UserCardRequestDTO;
 import org.example.PocketDex.DTO.response.ApiResponseDTO;
 import org.example.PocketDex.DTO.response.ResponseBodyDTO;
 import org.example.PocketDex.DTO.response.UpdateUserCardsResponseDTO;
@@ -30,7 +29,7 @@ public class UserCardController {
     updateUserCards(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody List<UserCard> userCardsToUpdate
-            ) {
+    ) {
         String backendToken = jwtService.extractToken(authHeader);
 
         return userCardService.updateUserCards(backendToken, userCardsToUpdate)

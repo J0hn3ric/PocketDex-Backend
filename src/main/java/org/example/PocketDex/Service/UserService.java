@@ -152,7 +152,7 @@ public class UserService {
         });
     }
 
-    public Mono<ResponseBodyDTO<List<UpdateUserProfileResponseDTO>>> updateUserInfo(
+    public Mono<ResponseBodyDTO<UpdateUserProfileResponseDTO>> updateUserInfo(
             String backendToken, String newUsername, String newUserImg
     ) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
@@ -193,9 +193,8 @@ public class UserService {
                                 response.bodyToMono(String.class)
                                         .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
                         )
-                        .bodyToFlux(UpdateUserProfileResponseDTO.class)
-                        .collectList()
-                        .map(users -> new ResponseBodyDTO<>(users, newBackendToken));
+                        .bodyToMono(UpdateUserProfileResponseDTO.class)
+                        .map(user -> new ResponseBodyDTO<>(user, newBackendToken));
             } else {
                 throw new IllegalArgumentException("Illegal Argument: got empty request body");
             }

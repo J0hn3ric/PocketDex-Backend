@@ -43,7 +43,7 @@ public class UserController {
     }
 
     @PatchMapping("/user-profile")
-    public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<List<UpdateUserProfileResponseDTO>>>>> updateUserProfileInfo(
+    public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<UpdateUserProfileResponseDTO>>>> updateUserProfileInfo(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody UpdateUserProfileRequest updateUserProfileRequest
     ) {
