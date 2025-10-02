@@ -186,9 +186,7 @@ public class UserService {
 
     public Mono<ResponseBodyDTO<String>> deleteUserUsingBackendToken(String backendToken) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
-            Map<String, String> sessionInfo = sessionService.getUserSessionInfo(backendToken);
-            String accessToken = sessionInfo.get(UserConstants.ACCESS_TOKEN_KEY);
-
+            String accessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
             String userIdFromToken = jwtService.getUserIdFromToken(accessToken);
 
             sessionService.deleteSession(backendToken);
