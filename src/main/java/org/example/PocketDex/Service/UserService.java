@@ -193,7 +193,8 @@ public class UserService {
                                 response.bodyToMono(String.class)
                                         .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
                         )
-                        .bodyToMono(UpdateUserProfileResponseDTO.class)
+                        .bodyToMono(UpdateUserProfileResponseDTO[].class)
+                        .map(arr -> arr[0])
                         .map(user -> new ResponseBodyDTO<>(user, newBackendToken));
             } else {
                 throw new IllegalArgumentException("Illegal Argument: got empty request body");
