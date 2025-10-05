@@ -18,13 +18,16 @@ public class UserMonitorService {
 
     private final UnifiedJedis jedis;
     private final UserService userService;
+    private final JWTService jwtService;
 
     @Autowired UserMonitorService(
             UnifiedJedis jedis,
+            JWTService jwtService,
             UserService userService
     ) {
         this.jedis = jedis;
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     public int checkAndDeleteInactiveUsers() {
@@ -46,7 +49,8 @@ public class UserMonitorService {
 
                         long lastActive = Long.parseLong(lastActiveStr);
                         if (lastActive < threshold) {
-                            String userId = key.replace("user_session:", "");
+                            String accessToken = jedis.hget(key, UserConstants.ACCESS_TOKEN_KEY);
+                            String userId = jwtService.getUserIdFromToken(accessToken);
 
                             return userService.deleteUserUsingUserId(userId)
                                     .doOnSubscribe(s -> System.out.println("Deleting userId=" + userId))
