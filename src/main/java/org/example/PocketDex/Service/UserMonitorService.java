@@ -51,11 +51,13 @@ public class UserMonitorService {
                         String lastActiveStr = jedis.hget(key, UserConstants.LAST_ACTIVE_KEY);
                         if (lastActiveStr == null) { return Mono.empty(); }
 
+                        String accessToken = jedis.hget(key, UserConstants.ACCESS_TOKEN_KEY);
+                        String userId = jwtService.getUserIdFromToken(accessToken);
+
+                        log.info(userId);
+
                         long lastActive = Long.parseLong(lastActiveStr);
                         if (lastActive < threshold) {
-                            String accessToken = jedis.hget(key, UserConstants.ACCESS_TOKEN_KEY);
-                            String userId = jwtService.getUserIdFromToken(accessToken);
-
                             return userService.deleteUserUsingUserId(userId)
                                     .doOnSubscribe(s -> log.info("Deleting userId=" + userId))
                                     .onErrorResume(e -> {
