@@ -27,7 +27,7 @@ public class UserMonitorService {
         this.userService = userService;
     }
 
-    public void checkAndDeleteInactiveUsers() {
+    public int checkAndDeleteInactiveUsers() {
         long now = Instant.now().getEpochSecond();
         long threshold = now - (24L * 60 * 60);
 
@@ -72,5 +72,6 @@ public class UserMonitorService {
         } while (!cursor.equals(ScanParams.SCAN_POINTER_START));
 
         System.out.println("Success: Inactive user check completed. Deleted " + totalDeleted + " users.");
+        return totalDeleted;
     }
 }

@@ -32,11 +32,11 @@ public class MaintenanceController {
                     .body("Unauthorized: key given doesn't correspond to internal key");
         }
 
-        userMonitorService.checkAndDeleteInactiveUsers();
+        int deletedUsers = userMonitorService.checkAndDeleteInactiveUsers();
 
         return ResponseEntity
                 .ok()
-                .body("Success: Inactive user check completed");
+                .body("Success: Inactive user check completed. Deleted " + deletedUsers + " users.");
     }
 
 
