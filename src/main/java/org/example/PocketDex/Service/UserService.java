@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.example.PocketDex.DTO.response.ResponseBodyDTO;
 import org.example.PocketDex.DTO.response.UpdateUserProfileResponseDTO;
 import org.example.PocketDex.Model.User;
+import org.example.PocketDex.Service.utils.SessionUtils;
 import org.example.PocketDex.Utils.SupabaseConstants;
 import org.example.PocketDex.Utils.UserConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -109,13 +111,8 @@ public class UserService {
 
     public Mono<ResponseBodyDTO<List<User>>> getUserInfoByUsername(String backendToken, String username) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
-            String accessToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.ACCESS_TOKEN_KEY);
-
-            String newBackendToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.BACKEND_TOKEN_KEY);
+            String accessToken = SessionUtils.getAccessToken(sessionContext);
+            String newBackendToken = SessionUtils.getBackendToken(sessionContext);
 
             return webClient
                     .get()
@@ -139,15 +136,9 @@ public class UserService {
             String backendToken, String newUsername, String newUserImg
     ) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
-            String accessToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.ACCESS_TOKEN_KEY);
-
-            String newBackendToken = sessionContext
-                    .sessionInfo()
-                    .get(UserConstants.BACKEND_TOKEN_KEY);
-
-            String userId = jwtService.getUserIdFromToken(accessToken);
+            String accessToken = SessionUtils.getAccessToken(sessionContext);
+            String newBackendToken = SessionUtils.getBackendToken(sessionContext);
+            UUID userId = SessionUtils.getUserId(accessToken, jwtService);
 
             ObjectNode payload = objectMapper.createObjectNode();
 
@@ -187,14 +178,14 @@ public class UserService {
 
     public Mono<ResponseBodyDTO<String>> deleteUserUsingBackendToken(String backendToken) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
-            String accessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
-            String userIdFromToken = jwtService.getUserIdFromToken(accessToken);
+            String accessToken = SessionUtils.getAccessToken(sessionContext);
+            UUID userId = SessionUtils.getUserId(accessToken, jwtService);
 
             sessionService.deleteSession(backendToken);
 
             return authWebClient
                     .delete()
-                    .uri("/admin/users/" + userIdFromToken)
+                    .uri("/admin/users/" + userId)
                     .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
                     .header(SupabaseConstants.API_KEY, authKey)
                     .retrieve()
@@ -241,8 +232,8 @@ public class UserService {
 
     private Mono<ResponseBodyDTO<User>> fetchUser(String backendToken, String userId) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
-            String accessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
-            String newBackendToken = sessionContext.sessionInfo().get(UserConstants.BACKEND_TOKEN_KEY);
+            String accessToken = SessionUtils.getAccessToken(sessionContext);
+            String newBackendToken = SessionUtils.getBackendToken(sessionContext);
 
             return webClient
                     .get()

@@ -1,5 +1,6 @@
 package org.example.PocketDex.Controller;
 
+import org.example.PocketDex.Controller.utils.ControllerUtils;
 import org.example.PocketDex.DTO.response.ApiResponseDTO;
 import org.example.PocketDex.Model.Card;
 import org.example.PocketDex.Service.CardService;
@@ -29,30 +30,22 @@ public class CardController {
             @RequestParam(required = false) String expansion,
             @RequestParam(required = false) String packId
     ) {
-        return cardService.getPaginatedCards(
-                    lastSeenId,
-                    rarity,
-                    name,
-                    expansion,
-                    packId
+        return ControllerUtils.toApiResponse(
+                cardService.getPaginatedCards(
+                        lastSeenId,
+                        rarity,
+                        name,
+                        expansion,
+                        packId
                 )
-                .map(cards -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(cards, null)
-                ))
-                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
-                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
-                )));
+        );
     }
 
     @GetMapping("/{cardId}")
     public Mono<ResponseEntity<ApiResponseDTO<Card>>> getCardById(@PathVariable String cardId) {
-        return cardService.getCardById(cardId)
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(
-                        new ApiResponseDTO<>(null, "Error fetching cards: " + e.getMessage())
-                )));
+        return ControllerUtils.toApiResponse(
+                cardService.getCardById(cardId)
+        );
     }
 
 }

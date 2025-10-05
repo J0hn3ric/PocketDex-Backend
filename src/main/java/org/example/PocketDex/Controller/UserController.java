@@ -1,5 +1,6 @@
 package org.example.PocketDex.Controller;
 
+import org.example.PocketDex.Controller.utils.ControllerUtils;
 import org.example.PocketDex.DTO.request.UpdateUserProfileRequest;
 import org.example.PocketDex.DTO.response.ApiResponseDTO;
 import org.example.PocketDex.DTO.response.ResponseBodyDTO;
@@ -29,15 +30,11 @@ public class UserController {
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<User>>>> gewOwnInfo(
         @RequestHeader("Authorization") String authHeader
     ) {
-        String jwtToken = jwtService.extractToken(authHeader);
+        String backendToken = ControllerUtils.extractToken(authHeader, jwtService);
 
-        return userService.getOwnUserInfo(jwtToken)
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.getOwnUserInfo(backendToken)
+        );
     }
 
 
@@ -45,17 +42,13 @@ public class UserController {
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<Void>>>> signupUser(
             @RequestBody User userInfo
     ) {
-
-        return userService.createNewUser(
-                userInfo.getFriendId(),
-                userInfo.getUsername(),
-                userInfo.getUserImg())
-                .map(body -> ResponseEntity.status(HttpStatus.CREATED).body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e ->
-                    Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.createNewUser(
+                        userInfo.getFriendId(),
+                        userInfo.getUsername(),
+                        userInfo.getUserImg()
+                )
+        );
     }
 
     @PatchMapping("/me")
@@ -63,18 +56,15 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader,
             @RequestBody UpdateUserProfileRequest updateUserProfileRequest
     ) {
-        String jwtToken = jwtService.extractToken(authHeader);
+        String backendToken = ControllerUtils.extractToken(authHeader, jwtService);
 
-        return userService.updateUserInfo(
-                jwtToken,
-                updateUserProfileRequest.getNewUsername(),
-                updateUserProfileRequest.getNewUserImg())
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.updateUserInfo(
+                        backendToken,
+                        updateUserProfileRequest.getNewUsername(),
+                        updateUserProfileRequest.getNewUserImg()
+                )
+        );
 
     }
 
@@ -82,15 +72,11 @@ public class UserController {
     public Mono<ResponseEntity<ApiResponseDTO<ResponseBodyDTO<String>>>> deleteUser(
             @RequestHeader("Authorization") String authHeader
     ) {
-        String jwtToken = jwtService.extractToken(authHeader);
+        String backendToken = ControllerUtils.extractToken(authHeader, jwtService);
 
-        return userService.deleteUserUsingBackendToken(jwtToken)
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume( e ->
-                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.deleteUserUsingBackendToken(backendToken)
+        );
     }
 
     @GetMapping("/{id}")
@@ -98,15 +84,11 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader,
             @PathVariable("id") String id
     ) {
-        String jwtToken = jwtService.extractToken(authHeader);
+        String backendToken = ControllerUtils.extractToken(authHeader, jwtService);
 
-        return userService.getUserInfoById(jwtToken, id)
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.getUserInfoById(backendToken, id)
+        );
     }
 
     @GetMapping("/username/{username}")
@@ -114,15 +96,11 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader,
             @PathVariable("username") String username
     ) {
-        String jwtToken = jwtService.extractToken(authHeader);
+        String backendToken = ControllerUtils.extractToken(authHeader, jwtService);
 
-        return userService.getUserInfoByUsername(jwtToken, username)
-                .map(body -> ResponseEntity.ok().body(
-                        new ApiResponseDTO<>(body, null)
-                ))
-                .onErrorResume(e ->
-                        Mono.just(ResponseEntity.badRequest().body(new ApiResponseDTO<>(null, e.getMessage())))
-                );
+        return ControllerUtils.toApiResponse(
+                userService.getUserInfoByUsername(backendToken, username)
+        );
     }
 
 
