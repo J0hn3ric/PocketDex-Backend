@@ -1,6 +1,8 @@
 package org.example.PocketDex.Service;
 
 import org.example.PocketDex.Utils.UserConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +17,8 @@ import java.time.Instant;
 
 @Service
 public class UserMonitorService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserMonitorService.class);
 
     private final UnifiedJedis jedis;
     private final UserService userService;
@@ -53,14 +57,14 @@ public class UserMonitorService {
                             String userId = jwtService.getUserIdFromToken(accessToken);
 
                             return userService.deleteUserUsingUserId(userId)
-                                    .doOnSubscribe(s -> System.out.println("Deleting userId=" + userId))
+                                    .doOnSubscribe(s -> log.info("Deleting userId=" + userId))
                                     .onErrorResume(e -> {
-                                        System.out.println("user was already deleted: " + e.getMessage());
+                                        log.info("user was already deleted: " + e.getMessage());
                                         return Mono.empty();
                                     })
                                     .then(Mono.fromRunnable(() -> {
                                         jedis.del(key);
-                                        System.out.println("Deleted Redis key for userId=" + userId);
+                                        log.info("Deleted Redis key for userId=" + userId);
                                     }))
                                     .thenReturn(1);
                         }
@@ -75,7 +79,7 @@ public class UserMonitorService {
             cursor = scanResult.getCursor();
         } while (!cursor.equals(ScanParams.SCAN_POINTER_START));
 
-        System.out.println("Success: Inactive user check completed. Deleted " + totalDeleted + " users.");
+        log.info("Success: Inactive user check completed. Deleted " + totalDeleted + " users.");
         return totalDeleted;
     }
 }
