@@ -84,6 +84,9 @@ public class JWTService {
                     .getPayload()
                     .getSubject();
 
+        } catch (ExpiredJwtException e) {
+            return e.getClaims()
+                    .getSubject();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
