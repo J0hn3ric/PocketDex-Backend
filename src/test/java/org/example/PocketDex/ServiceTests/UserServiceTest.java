@@ -202,7 +202,7 @@ public class UserServiceTest {
 
                 assertNotNull(userId);
 
-                ResponseBodyDTO<List<User>> getUserByIdResponse = userService
+                ResponseBodyDTO<User> getUserByIdResponse = userService
                         .getUserInfoById(
                             backendToken,
                             String.valueOf(userId)
@@ -212,8 +212,7 @@ public class UserServiceTest {
                 assertEquals(backendToken, getUserByIdResponse.backendToken());
 
                 User userReturned = getUserByIdResponse
-                        .data()
-                        .getFirst();
+                        .data();
 
                 assertAll(
                         () -> assertEquals(expectedUsername, userReturned.getUsername()),
@@ -268,14 +267,14 @@ public class UserServiceTest {
                 String expectedUserImg = newUserImg;
                 String expectedFriendId = testFriendId;
 
-                ResponseBodyDTO<List<UpdateUserProfileResponseDTO>> updateUserInfoResponse = userService
+                ResponseBodyDTO<UpdateUserProfileResponseDTO> updateUserInfoResponse = userService
                         .updateUserInfo(backendToken, newUsername, newUserImg)
                         .block();
 
                 assertNotNull(updateUserInfoResponse);
                 assertEquals(backendToken, updateUserInfoResponse.backendToken());
 
-                ResponseBodyDTO<List<User>> getUserInfoResponse = userService
+                ResponseBodyDTO<User> getUserInfoResponse = userService
                         .getUserInfoById(backendToken, userId.toString())
                         .block();
 
@@ -283,8 +282,7 @@ public class UserServiceTest {
                 assertEquals(backendToken, getUserInfoResponse.backendToken());
 
                 User userInfoReturned = getUserInfoResponse
-                        .data()
-                        .getFirst();
+                        .data();
 
                 assertAll(
                         () -> assertEquals(expectedUsername, userInfoReturned.getUsername()),
@@ -305,14 +303,14 @@ public class UserServiceTest {
                 String expectedUserImg = testUserImg;
                 String expectedFriendId = testFriendId;
 
-                ResponseBodyDTO<List<UpdateUserProfileResponseDTO>> updateUserInfoResponse = userService
+                ResponseBodyDTO<UpdateUserProfileResponseDTO> updateUserInfoResponse = userService
                         .updateUserInfo(backendToken, newUsername, null)
                         .block();
 
                 assertNotNull(updateUserInfoResponse);
                 assertEquals(backendToken, updateUserInfoResponse.backendToken());
 
-                ResponseBodyDTO<List<User>> getUserInfoResponse = userService
+                ResponseBodyDTO<User> getUserInfoResponse = userService
                         .getUserInfoById(backendToken, userId.toString())
                         .block();
 
@@ -320,8 +318,7 @@ public class UserServiceTest {
                 assertEquals(backendToken, getUserInfoResponse.backendToken());
 
                 User userInfoReturned = getUserInfoResponse
-                        .data()
-                        .getFirst();
+                        .data();
 
                 assertAll(
                         () -> assertEquals(expectedUsername, userInfoReturned.getUsername()),
@@ -343,14 +340,14 @@ public class UserServiceTest {
                 String expectedUserImg = newUserImg;
                 String expectedFriendId = testFriendId;
 
-                ResponseBodyDTO<List<UpdateUserProfileResponseDTO>> updateUserInfoResponse = userService
+                ResponseBodyDTO<UpdateUserProfileResponseDTO> updateUserInfoResponse = userService
                         .updateUserInfo(backendToken, null, newUserImg)
                         .block();
 
                 assertNotNull(updateUserInfoResponse);
                 assertEquals(backendToken, updateUserInfoResponse.backendToken());
 
-                ResponseBodyDTO<List<User>> getUserInfoResponse = userService
+                ResponseBodyDTO<User> getUserInfoResponse = userService
                         .getUserInfoById(backendToken, userId.toString())
                         .block();
 
@@ -358,8 +355,7 @@ public class UserServiceTest {
                 assertEquals(backendToken, getUserInfoResponse.backendToken());
 
                 User userInfoReturned = getUserInfoResponse
-                        .data()
-                        .getFirst();
+                        .data();
 
                 assertAll(
                         () -> assertEquals(expectedUsername, userInfoReturned.getUsername()),
@@ -379,17 +375,16 @@ public class UserServiceTest {
                 String nonExistentId = UUID.randomUUID().toString();
                 int expectedUserListSize = 0;
 
-                ResponseBodyDTO<List<User>> getUserByIdResponse = userService
+                ResponseBodyDTO<User> getUserByIdResponse = userService
                         .getUserInfoById(backendToken, nonExistentId)
                         .block();
 
                 assertNotNull(getUserByIdResponse);
 
-                List<User> userList = getUserByIdResponse.data();
+                User userList = getUserByIdResponse.data();
 
                 assertAll(
-                        () -> assertEquals(backendToken, getUserByIdResponse.backendToken()),
-                        () -> assertEquals(expectedUserListSize, userList.size())
+                        () -> assertEquals(backendToken, getUserByIdResponse.backendToken())
                 );
             } catch (Exception e) {
                 deleteUser();
