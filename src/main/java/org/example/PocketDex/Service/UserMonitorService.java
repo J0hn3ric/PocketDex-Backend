@@ -50,6 +50,10 @@ public class UserMonitorService {
 
                             return userService.deleteUserUsingUserId(userId)
                                     .doOnSubscribe(s -> System.out.println("Deleting userId=" + userId))
+                                    .onErrorResume(e -> {
+                                        System.out.println("user was already deleted: " + e.getMessage());
+                                        return Mono.empty();
+                                    })
                                     .then(Mono.fromRunnable(() -> {
                                         jedis.del(key);
                                         System.out.println("Deleted Redis key for userId=" + userId);
