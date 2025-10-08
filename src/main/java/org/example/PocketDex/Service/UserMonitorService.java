@@ -34,7 +34,7 @@ public class UserMonitorService {
 
     public int checkAndDeleteInactiveUsers() {
         long now = Instant.now().getEpochSecond();
-        long threshold = now - (24L * 60 * 60);
+        long threshold = now - (30L * 24 * 60 * 60);
 
         int totalDeleted = 0;
 
