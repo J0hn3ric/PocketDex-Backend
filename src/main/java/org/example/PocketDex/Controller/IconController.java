@@ -24,7 +24,6 @@ public class IconController {
     public Mono<ResponseEntity<ApiResponseDTO<List<Icon>>>> getAllIcons() {
         return ControllerUtils.toApiResponse(
                 iconService.getAllIcons()
-                        .collectList()
         );
     }
 }
