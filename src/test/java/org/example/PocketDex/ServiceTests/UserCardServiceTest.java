@@ -254,7 +254,7 @@ public class UserCardServiceTest {
 
         @Test
         void userCardService_GetUserCardWithValidId_UserCardReturned() {
-            String userCardIdToLookFor = "card1";
+            String userCardIdToLookFor = "A1-001";
             UserCard expectedUserCard = new UserCard(
                     userCardIdToLookFor,
                     UUID.fromString(userId),

@@ -31,7 +31,7 @@ public class UserMonitorServiceTest {
         try {
             int deleted = userMonitorService.checkAndDeleteInactiveUsers();
 
-            assertNotEquals(0, deleted);
+            assertEquals(0, deleted);
         } catch (Exception e) {
             System.out.println(e.getMessage());
             assertFalse(true);

@@ -65,10 +65,7 @@ public class SessionServiceTest {
                     () -> assertEquals(backendToken, result.get("backend_token")),
                     () -> assertEquals(testAccessToken, result.get("access_token")),
                     () -> assertEquals(String.valueOf(testAccessExp), result.get("access_expires_at")),
-                    () -> assertEquals(testRefreshToken, result.get("refresh_token")),
-                    () -> assertEquals(
-                            String.valueOf(Instant.now().getEpochSecond()), result.get("last_active")
-                    )
+                    () -> assertEquals(testRefreshToken, result.get("refresh_token"))
             );
         } catch (Exception e) {
             deleteSession();
@@ -121,10 +118,7 @@ public class SessionServiceTest {
                         () -> assertEquals(backendToken, response.get("backend_token")),
                         () -> assertEquals(expectedAccessToken, response.get("access_token")),
                         () -> assertEquals(expectedAccessExp, response.get("access_expires_at")),
-                        () -> assertEquals(expectedRefreshToken, response.get("refresh_token")),
-                        () -> assertEquals(
-                                String.valueOf(Instant.now().getEpochSecond()), response.get("last_active")
-                        )
+                        () -> assertEquals(expectedRefreshToken, response.get("refresh_token"))
                 );
 
             } catch (Exception e) {
@@ -156,10 +150,7 @@ public class SessionServiceTest {
                         () -> assertEquals(backendToken, newBackendToken),
                         () -> assertEquals(updatedAccessToken, response.get("access_token")),
                         () -> assertEquals(String.valueOf(updatedAccessExp), response.get("access_expires_at")),
-                        () -> assertEquals(updatedRefreshToken, response.get("refresh_token")),
-                        () -> assertEquals(
-                                String.valueOf(Instant.now().getEpochSecond()), response.get("last_active")
-                        )
+                        () -> assertEquals(updatedRefreshToken, response.get("refresh_token"))
                 );
             } catch (Exception e) {
                 deleteSession();

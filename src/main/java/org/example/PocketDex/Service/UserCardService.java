@@ -9,6 +9,7 @@ import org.example.PocketDex.DTO.response.UpdateUserCardsResponseDTO;
 import org.example.PocketDex.DTO.response.UserCardWithCardInfoResponseDTO;
 import org.example.PocketDex.Model.UserCard;
 import org.example.PocketDex.Model.UserCollection;
+import org.example.PocketDex.Repository.user_card.UserCardRepository;
 import org.example.PocketDex.Service.utils.SessionUtils;
 import org.example.PocketDex.Utils.UserConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ import java.util.UUID;
 @Service
 public class UserCardService {
 
-    private final WebClient webClient;
+    private final UserCardRepository userCardRepository;
     private final JWTService jwtService;
     private final TokenService tokenService;
     private final CardService cardService;
@@ -34,12 +35,12 @@ public class UserCardService {
 
     @Autowired
     public UserCardService(
-            @Qualifier("supabaseWebClient") WebClient webClient,
+            @Qualifier("supabaseUserCardRepository") UserCardRepository userCardRepository,
             JWTService jwtService,
             TokenService tokenService,
             CardService cardService
     ) {
-        this.webClient = webClient;
+        this.userCardRepository = userCardRepository;
         this.jwtService = jwtService;
         this.tokenService = tokenService;
         this.cardService = cardService;
@@ -56,17 +57,7 @@ public class UserCardService {
 
             requestPayload.forEach(userCard -> userCard.setUserId(userId));
 
-            return webClient.post()
-                    .uri("/rpc/bulk_upsert_user_cards")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .bodyValue(createBulkUpsertRequestBody(requestPayload))
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(UserCard.class)
-                    .collectList()
+            return userCardRepository.addUserCards(requestPayload, accessToken)
                     .map(userCards -> buildUpdateResponse(userCards, List.of(), newBackendToken));
         });
     }
@@ -89,11 +80,11 @@ public class UserCardService {
 
             Mono<JsonNode> upsertMono = userCardsToUpsert.isEmpty()
                     ? Mono.empty()
-                    : upsertUserCards(accessToken, userCardsToUpsert);
+                    : userCardRepository.upsertUserCards(userCardsToUpsert, accessToken);
 
             Mono<JsonNode> deleteMono = userCardsToDelete.isEmpty()
                     ? Mono.empty()
-                    : deleteUserCards(accessToken, userCardsToDelete);
+                    : userCardRepository.deleteUserCards(userCardsToDelete, accessToken);
 
             return Mono
                     .when(upsertMono, deleteMono)
@@ -113,21 +104,7 @@ public class UserCardService {
             String newBackendToken = SessionUtils.getBackendToken(sessionContext);
             UUID userId = SessionUtils.getUserId(accessToken, jwtService);
 
-            return webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/UserCard")
-                            .queryParam("user_id", "eq." + userId)
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(UserCard.class)
-                    .collectList()
-                    .flatMapMany(cardService::getUserCardsWithInfo)
-                    .collectList()
+            return userCardRepository.getUserCardsByUserId(userId.toString(), accessToken, cardService)
                     .map(userCardsWithInfo -> new ResponseBodyDTO<>(
                             userCardsWithInfo,
                             newBackendToken
@@ -143,21 +120,7 @@ public class UserCardService {
             String accessToken = SessionUtils.getAccessToken(sessionContext);
             String newBackendToken = SessionUtils.getBackendToken(sessionContext);
 
-            return webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/UserCard")
-                            .queryParam("user_id", "eq." + userId)
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(UserCard.class)
-                    .collectList()
-                    .flatMapMany(cardService::getUserCardsWithInfo)
-                    .collectList()
+            return userCardRepository.getUserCardsByUserId(userId, accessToken, cardService)
                     .map(userCardsWithInfo -> new ResponseBodyDTO<>(
                             userCardsWithInfo,
                             newBackendToken
@@ -174,98 +137,11 @@ public class UserCardService {
             String newBackendToken = SessionUtils.getBackendToken(sessionContext);
             UUID userId = SessionUtils.getUserId(accessToken, jwtService);
 
-            return webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/UserCard")
-                            .queryParam("user_id", "eq." + userId)
-                            .queryParam("card_id", "eq." + cardId)
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(UserCard.class)
-                    .collectList()
+            return userCardRepository.getUserCardByCardId(userId.toString(), cardId, accessToken)
                     .map(userCards -> new ResponseBodyDTO<>(userCards, newBackendToken));
         });
     }
 
-    private Mono<JsonNode> deleteUserCards(
-            String accessToken,
-            List<UserCard> userCardsToDelete
-    ) {
-        return webClient.post()
-                .uri("/rpc/bulk_delete_by_user_card")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .header("Prefer", "return=representation")
-                .bodyValue(createBulkDeleteRequestBody(userCardsToDelete))
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                )
-                .bodyToMono(JsonNode.class);
-    }
-
-    private Mono<JsonNode> upsertUserCards(
-            String accessToken,
-            List<UserCard> userCardsToUpdate
-    ) {
-        return webClient
-                .post()
-                .uri("/UserCard")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .header("Prefer", "resolution=merge-duplicates, return=representation")
-                .bodyValue(userCardsToUpdate)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                )
-                .bodyToMono(JsonNode.class);
-    }
-
-
-    private ObjectNode createBulkUpsertRequestBody(List<UserCard> userCards) {
-        ObjectNode requestBody = objectMapper.createObjectNode();
-        requestBody.put("table_name", "UserCard");
-        requestBody.put("user_column", "user_id");
-        requestBody.put("card_column", "card_id");
-        requestBody.put("amount_column", "quantity");
-
-        ArrayNode payload = objectMapper.createArrayNode();
-        for (UserCard uc : userCards) {
-            ObjectNode userCard = objectMapper.createObjectNode();
-            userCard.put("user_id", uc.getUserId().toString());
-            userCard.put("card_id", uc.getCardId());
-            userCard.put("quantity", uc.getQuantity());
-            payload.add(userCard);
-        }
-
-        requestBody.set("payload", payload);
-
-        return requestBody;
-    }
-
-    private ObjectNode createBulkDeleteRequestBody(List<UserCard> userCards) {
-        ObjectNode requestBody = objectMapper.createObjectNode();
-        requestBody.put("table_name", "UserCard");
-        requestBody.put("user_column", "user_id");
-        requestBody.put("card_column", "card_id");
-
-        ArrayNode pairs = objectMapper.createArrayNode();
-        for (UserCard uc : userCards) {
-            ObjectNode pair = objectMapper.createObjectNode();
-            pair.put("user_id", uc.getUserId().toString());
-            pair.put("card_id", uc.getCardId());
-            pairs.add(pair);
-        }
-
-        requestBody.set("pairs", pairs);
-        return requestBody;
-    }
 
     private ResponseBodyDTO<UpdateUserCardsResponseDTO> buildUpdateResponse(
             List<UserCard> upsertedUserCards,

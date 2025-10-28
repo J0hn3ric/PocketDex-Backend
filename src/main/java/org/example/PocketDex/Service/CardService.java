@@ -85,10 +85,11 @@ public class CardService {
         return cardRepository.findAllById(cardIdList)
                 .collectMap(Card::getId)
                 .flatMapMany(cardMap -> Flux.fromIterable(userCards)
+                        .filter(userCard -> cardMap.get(userCard.getCardId()) != null)
                         .map(userCard -> new UserCardWithCardInfoResponseDTO(
-                                userCard.getQuantity(),
-                                userCard.isTradable(),
-                                cardMap.get(userCard.getCardId())
+                                    userCard.getQuantity(),
+                                    userCard.isTradable(),
+                                    cardMap.get(userCard.getCardId())
                         ))
                 );
     }
