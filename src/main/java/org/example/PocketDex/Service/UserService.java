@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.example.PocketDex.DTO.response.ResponseBodyDTO;
 import org.example.PocketDex.DTO.response.UpdateUserProfileResponseDTO;
 import org.example.PocketDex.Model.User;
+import org.example.PocketDex.Repository.user.UserRepository;
 import org.example.PocketDex.Service.utils.SessionUtils;
 import org.example.PocketDex.Utils.SupabaseConstants;
 import org.example.PocketDex.Utils.UserConstants;
@@ -25,35 +26,25 @@ import java.util.UUID;
 @Service
 public class UserService {
 
-    private final WebClient webClient;
-    private final WebClient authWebClient;
+    private final UserRepository userRepository;
     private final JWTService jwtService;
     private final SessionService sessionService;
     private final TokenService tokenService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final String authUrl;
-    private final String authKey;
+
 
     @Autowired
     public UserService(
-            @Qualifier("supabaseWebClient") WebClient webClient,
             JWTService jwtService,
             SessionService sessionService,
             TokenService tokenService,
-            @Value("${supabase.url}") String authUrl,
-            @Value("${supabase.secret.api.key}") String authKey
-
+            @Qualifier("supabaseUserRepository") UserRepository userRepository
     ) {
-        this.webClient = webClient;
         this.jwtService = jwtService;
         this.tokenService = tokenService;
         this.sessionService = sessionService;
-        this.authUrl = authUrl;
-        this.authKey = authKey;
-        this.authWebClient = webClient.mutate()
-                .baseUrl(this.authUrl + "/auth/v1")
-                .build();
+        this.userRepository = userRepository;
 
     }
 
@@ -62,7 +53,7 @@ public class UserService {
             String username,
             String userImg
     ) {
-        return anonymousSignup().flatMap(response -> {
+        return userRepository.signup().flatMap(response -> {
             String accessToken = response.get(UserConstants.ACCESS_TOKEN_KEY).asText();
             long accessTokenExpiration = response.get("expires_at").asLong();
             String refreshToken = response.get(UserConstants.REFRESH_TOKEN_KEY). asText();
@@ -79,30 +70,14 @@ public class UserService {
                     userImg
             );
 
-
-            return webClient
-                    .post()
-                    .uri("/User")
-                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
-                    .bodyValue(user)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, resp ->
-                            resp.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToMono(Void.class)
+            return userRepository.createUser(user, accessToken)
                     .then(Mono.just(new ResponseBodyDTO<>(null, backendToken)));
         });
     }
 
 
     public Mono<ResponseBodyDTO<User>> getOwnUserInfo(String backendToken) {
-        return tokenService.withValidSession(backendToken, sessionContext -> {
-            String refreshedAccessToken = sessionContext.sessionInfo().get(UserConstants.ACCESS_TOKEN_KEY);
-            String userId = jwtService.getUserIdFromToken(refreshedAccessToken);
-
-            return fetchUser(backendToken, userId);
-        });
+        return fetchUser(backendToken, null);
     }
 
     public Mono<ResponseBodyDTO<User>> getUserInfoById(String backendToken, String userId) {
@@ -114,20 +89,7 @@ public class UserService {
             String accessToken = SessionUtils.getAccessToken(sessionContext);
             String newBackendToken = SessionUtils.getBackendToken(sessionContext);
 
-            return webClient
-                    .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/User")
-                            .queryParam("username", "eq." + username)
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToFlux(User.class)
-                    .collectList()
+            return userRepository.getUsersByUsername(username, accessToken)
                     .map(users -> new ResponseBodyDTO<>(users, newBackendToken));
         });
     }
@@ -153,22 +115,7 @@ public class UserService {
             System.out.println(payload.toString());
 
             if (!payload.isEmpty()) {
-                return webClient
-                        .patch()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/User")
-                                .queryParam("id", "eq." + userId)
-                                .build())
-                        .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
-                        .header("Prefer", "return=representation")
-                        .bodyValue(payload)
-                        .retrieve()
-                        .onStatus(HttpStatusCode::isError, response ->
-                                response.bodyToMono(String.class)
-                                        .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                        )
-                        .bodyToMono(UpdateUserProfileResponseDTO[].class)
-                        .map(arr -> arr[0])
+                return userRepository.updateUser(userId.toString(), payload, accessToken)
                         .map(user -> new ResponseBodyDTO<>(user, newBackendToken));
             } else {
                 throw new IllegalArgumentException("Illegal Argument: got empty request body");
@@ -183,76 +130,25 @@ public class UserService {
 
             sessionService.deleteSession(backendToken);
 
-            return authWebClient
-                    .delete()
-                    .uri("/admin/users/" + userId)
-                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
-                    .header(SupabaseConstants.API_KEY, authKey)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToMono(String.class)
+            return userRepository.deleteUser(userId.toString())
                     .then(Mono.just(new ResponseBodyDTO<>("user deleted successfully!", null)));
         });
     }
 
     public Mono<Void> deleteUserUsingUserId(String userId) {
-        return authWebClient
-                .delete()
-                .uri("/admin/users/" + userId)
-                .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
-                .header(SupabaseConstants.API_KEY, authKey)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                )
-                .bodyToMono(Void.class);
+        return userRepository.deleteUser(userId);
     }
 
-    private Mono<JsonNode> anonymousSignup() {
-        ObjectNode payload = objectMapper.createObjectNode();
-        payload.put("anonymous", true);
-
-        return authWebClient
-                .post()
-                .uri("/signup")
-                .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + authKey)
-                .header(SupabaseConstants.API_KEY, authKey)
-                .bodyValue(payload)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response ->
-                        response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                )
-                .bodyToMono(JsonNode.class);
-    }
-
-    private Mono<ResponseBodyDTO<User>> fetchUser(String backendToken, String userId) {
+    private Mono<ResponseBodyDTO<User>> fetchUser(String backendToken, String id) {
         return tokenService.withValidSession(backendToken, sessionContext -> {
             String accessToken = SessionUtils.getAccessToken(sessionContext);
             String newBackendToken = SessionUtils.getBackendToken(sessionContext);
 
-            return webClient
-                    .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/User")
-                            .queryParam("id", "eq." + userId)
-                            .queryParam("select", "username,friend_id,user_img")
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, SupabaseConstants.TOKEN_PREFIX + accessToken)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, response ->
-                            response.bodyToMono(String.class)
-                                    .flatMap(body -> Mono.error(new RuntimeException("Failed: " + body)))
-                    )
-                    .bodyToMono(User[].class)
-                    .flatMap(arr -> {
-                        if (arr.length == 0) return Mono.error(new RuntimeException("User not found"));
-                        return Mono.just(arr[0]);
-                    })
+            String userId = id == null
+                ? jwtService.getUserIdFromToken(accessToken)
+                : id;
+
+            return userRepository.getUserById(userId, accessToken)
                     .map(user -> new ResponseBodyDTO<>(user, newBackendToken));
         });
     }

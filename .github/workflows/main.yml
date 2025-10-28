@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: CI/CD environment
 
     steps:
       - name: Checkout repo
@@ -37,3 +38,6 @@ jobs:
 
       - name: Build and run tests
         run: ./gradlew clean build --no-daemon
+
+      - name: Deploy
+        run: echo "Deploying..."

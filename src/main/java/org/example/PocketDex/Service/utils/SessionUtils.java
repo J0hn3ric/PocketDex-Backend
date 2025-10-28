@@ -18,11 +18,6 @@ public final class SessionUtils {
         return sessionContext.sessionInfo().get(UserConstants.BACKEND_TOKEN_KEY);
     }
 
-    public static UUID getUserId(SessionContext sessionContext, JWTService jwtService) {
-        String token = getAccessToken(sessionContext);
-        return UUID.fromString(jwtService.getUserIdFromToken(token));
-    }
-
     public static UUID getUserId(String accessToken, JWTService jwtService) {
         return UUID.fromString(jwtService.getUserIdFromToken(accessToken));
     }
