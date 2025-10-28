@@ -37,6 +37,19 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build and run tests
+        env:
+          INTERNAL_SECRET_KEY: ${{ secrets.INTERNAL_SECRET_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MONGO_DB: ${{ secrets.MONGO_DB }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          REDIS_CLOUD_HOST: ${{ secrets.REDIS_CLOUD_HOST }}
+          REDIS_CLOUD_PASSWORD: ${{ secrets.REDIS_CLOUD_PASSWORD }}
+          REDIS_CLOUD_PORT: ${{ secrets.REDIS_CLOUD_PORT }}
+          REDIS_CLOUD_USER: ${{ secrets.REDIS_CLOUD_USER }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          SUPABASE_SECRET: ${{ secrets.SUPABASE_SECRET }}
+          SUPABASE_SECRET_API_KEY: ${{ secrets.SUPABASE_SECRET_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: ./gradlew clean build --no-daemon
 
       - name: Deploy
