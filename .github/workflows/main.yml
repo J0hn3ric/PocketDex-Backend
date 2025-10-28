@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout4
+        uses: actions/checkout@v4
 
       - name: Install Heroku CLI
         run: |
