@@ -68,6 +68,7 @@ public class CardServiceTest {
         }
     }
 
+    @Test
     public void cardService_GetUserCardsWithInfoWithAnInvalidUserCard_ReturnsLessUserCardEnrichedThanGiven() {
         UUID userId = UUID.randomUUID();
         int expectedUserCardListSize = 2;
@@ -82,6 +83,8 @@ public class CardServiceTest {
                 .getUserCardsWithInfo(userCardList)
                 .collectList()
                 .block();
+
+        System.out.println(userCardEnriched);
 
         assertNotNull(userCardEnriched);
         assertNotEquals(userCardList.size(), userCardEnriched.size());
@@ -109,14 +112,129 @@ public class CardServiceTest {
 
         AtomicInteger cardNumber = new AtomicInteger(1);
 
-        System.out.println("Raw from Mongo:");
-        allCards.forEach(c -> System.out.println(c.getId()));
-
         allCards.forEach(c -> {
             assertEquals(expactedPrefix + String.format("%03d", cardNumber.get()), c.getId());
             cardNumber.getAndIncrement();
         });
     }
+
+    @Test
+    public void cardService_GetPaginatedCardsByRarity_CardLengthIsCorrectAndQueryExecutedCorrectly() {
+        int numberOfDocuments = 50;
+        String expectedRarity = Rarity.ONE_DIA.getRarityString();
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        expectedRarity,
+                        null,
+                        null,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+
+        filteredCards.forEach(c ->
+                assertEquals(Rarity.ONE_DIA, c.getRarity())
+        );
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByExpansion_CardLengthIsCorrectAndQueryExecutedCorrectly() {
+        int numberOfDocuments = 50;
+        String expectedExpansion = "A1a";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        null,
+                        expectedExpansion,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+
+        filteredCards.forEach(c ->
+                assertEquals(expectedExpansion, c.getExpansion())
+        );
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByPack_CardLengthIsCorrectAndQueryExecutedCorrectly() {
+        int numberOfDocuments = 50;
+        String expectedPack = "A1-Charizard_Pack";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        null,
+                        null,
+                        expectedPack
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+
+        filteredCards.forEach(c ->
+                assertEquals(expectedPack, c.getPackId())
+        );
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByExactName_CardLengthIsCorrectAndQueryExecutedCorrectly() {
+        int numberOfDocuments = 3;
+        String expectedName = "bulbasaur";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        expectedName,
+                        null,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+
+        filteredCards.forEach(c ->
+                assertEquals(expectedName, c.getName().toLowerCase())
+        );
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByExactNamePrefix_CardLengthIsCorrectAndQueryExecutedCorrectly() {
+        String expectedNamePrefix = "m";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        expectedNamePrefix,
+                        null,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        filteredCards.forEach(c ->
+                assertEquals(expectedNamePrefix, c.getName().substring(0, expectedNamePrefix.length()).toLowerCase())
+        );
+    }
+
 
     @Test
     public void cardService_getCardById_CardInstanceCreatedSuccessfully() {
@@ -152,5 +270,65 @@ public class CardServiceTest {
             boolean failed = true;
             assertFalse(failed);
         }
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByInvalidRarity_ReturnsEmptyList() {
+        int numberOfDocuments = 0;
+        String expectedRarity = "error";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        expectedRarity,
+                        null,
+                        null,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByInvalidExpansion_ReturnsEmptyList() {
+        int numberOfDocuments = 0;
+        String expectedExpansion = "error";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        null,
+                        expectedExpansion,
+                        null
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
+    }
+
+    @Test
+    public void cardService_GetPaginatedCardsByInvalidPack_ReturnsEmptyList() {
+        int numberOfDocuments = 0;
+        String expectedPack = "error";
+
+        List<Card> filteredCards = cardService
+                .getPaginatedCards(
+                        "A1-001",
+                        null,
+                        null,
+                        null,
+                        expectedPack
+                )
+                .block();
+
+        assertNotNull(filteredCards);
+
+        assertEquals(numberOfDocuments, filteredCards.size());
     }
 }
