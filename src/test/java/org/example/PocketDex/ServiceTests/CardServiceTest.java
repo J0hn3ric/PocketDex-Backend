@@ -312,6 +312,8 @@ public class CardServiceTest {
         assertEquals(numberOfDocuments, filteredCards.size());
     }
 
+    // to trigger pull request
+
     @Test
     public void cardService_GetPaginatedCardsByInvalidPack_ReturnsEmptyList() {
         int numberOfDocuments = 0;
