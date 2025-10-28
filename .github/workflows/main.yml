@@ -6,6 +6,7 @@ on:
       - main
   push:
     branches:
+      - main
       - development
 
 jobs:
@@ -58,7 +59,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repo
